@@ -1,6 +1,6 @@
 import { directive, tsImportEqualsDeclaration } from "@babel/types";
 import React, { Component } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, Dimensions } from "react-native";
 import InputNumberButton from "./inputNumberButton";
 
 const buttons = [
@@ -10,6 +10,33 @@ const buttons = [
   ['1','2','3','-'],
   ['0', '.', '=', '+']
 ];
+
+const buttonsLand = [
+  ['x!','AC', 'DEL'],
+  ['10^x','7','8','9','/'],
+  ['log10','4','5','6', '*'],
+  ['x^2','1','2','3','-'],
+  ['x^3','0', '.', '=', '+']
+];
+
+const isPortrait = () => {
+  const dim = Dimensions.get('screen');
+  return dim.height >= dim.width;
+};
+
+const isLandscape = () => {
+  const dim = Dimensions.get('screen');
+  return dim.width >= dim.height;
+};
+
+function factorialize(num) {
+  if (num === 0 || num === 1)
+    return 1;
+  for (let i = num - 1; i >= 1; i--) {
+    num *= i;
+  }
+  return num;
+}
 
 class App extends Component {
 
@@ -23,10 +50,34 @@ class App extends Component {
       nextValue: false
     }
     this.state = this.initialState;
+    this.state = {
+      orientation: isPortrait() ? 'portrait' : 'landscape'
+    };
+
+    // Event Listener for orientation changes
+    Dimensions.addEventListener('change', () => {
+      this.setState({
+        orientation: isPortrait() ? 'portrait' : 'landscape'
+      });
+    });
   }
+
 
   renderButtons() {
     let layouts = buttons.map((buttonRows, index) => {
+      let rowItem = buttonRows.map((buttonItems, buttonIndex) => {
+        return <InputNumberButton
+                  value={buttonItems}
+                  handleOnPress={this.handleInput.bind(this, buttonItems)}
+                  key={'btn-' + buttonIndex} />
+      });
+      return <View style={styles.inputRow} key={'row-'+index}>{rowItem}</View>
+    });
+    return layouts
+  }
+
+  renderButtonsLandscape() {
+    let layouts = buttonsLand.map((buttonRows, index) => {
       let rowItem = buttonRows.map((buttonItems, buttonIndex) => {
         return <InputNumberButton
                   value={buttonItems}
@@ -115,25 +166,74 @@ class App extends Component {
           firstValue: length === 1 ? '' : deletedString
         })
         break;
+      case 'x!':
+        let num = factorialize(firstValue);
+        this.setState({
+          displayValue: num
+        })
+        break;
+      case 'x^2':
+        let num2 = Math.pow(firstValue, 2);
+        this.setState({
+          displayValue: num2
+        })
+        break;
+      case 'x^3':
+        let num3 = Math.pow(firstValue, 3);
+        this.setState({
+          displayValue: num3
+        })
+        break;
+      case '10^x':
+        let num10 = Math.pow(10, firstValue);
+        this.setState({
+          displayValue: num10
+        })
+        break;
+      case 'log10':
+        let log10 = Math.log10(firstValue);
+        this.setState({
+          displayValue: log10
+        })
+        break;
+
     }
   }
 
   render() {
-    return (
-      <View style={styles.container}>
+    if(this.state.orientation === 'portrait') {
+      return (
+        <View style={styles.container}>
 
-        <View style={styles.resultContainer}>
-          <Text style={styles.resultText}>
-            {this.state.displayValue}
-          </Text>
+          <View style={styles.resultContainer}>
+            <Text style={styles.resultText}>
+              {this.state.displayValue}
+            </Text>
+          </View>
+
+          <View style={styles.inputContainer}>
+            {this.renderButtons()}
+          </View>
+
         </View>
+      );
+    } else {
+      return (
+        <View style={styles.container}>
 
-        <View style={styles.inputContainer}>
-          {this.renderButtons()}
+          <View style={styles.resultContainer}>
+            <Text style={styles.resultTextLand}>
+              {this.state.displayValue}
+            </Text>
+          </View>
+
+          <View style={styles.inputContainer}>
+            {this.renderButtonsLandscape()}
+          </View>
+
         </View>
-
-      </View>
-    );
+      );
+    }
   }
 }
 
@@ -153,6 +253,13 @@ const styles = StyleSheet.create({
   resultText: {
     color: 'white',
     fontSize: 80,
+    fontWeight: 'bold',
+    padding: 20,
+    textAlign: 'right'
+  },
+  resultTextLand: {
+    color: 'white',
+    fontSize: 40,
     fontWeight: 'bold',
     padding: 20,
     textAlign: 'right'
