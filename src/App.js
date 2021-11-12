@@ -3,6 +3,8 @@ import React, { Component } from "react";
 import { StyleSheet, Text, View, Dimensions } from "react-native";
 import InputNumberButton from "./inputNumberButton";
 
+const math = require("mathjs");
+
 const buttons = [
   ['AC', 'DEL'],
   ['7','8','9','/'],
@@ -29,29 +31,17 @@ const isLandscape = () => {
   return dim.width >= dim.height;
 };
 
-function factorialize(num) {
-  if (num === 0 || num === 1)
-    return 1;
-  for (let i = num - 1; i >= 1; i--) {
-    num *= i;
-  }
-  return num;
-}
+
+
 
 class App extends Component {
 
   constructor() {
     super()
-    this.initialState = {
-      displayValue: '0',
-      operator: null,
-      firstValue: '',
-      secondValue: '',
-      nextValue: false
-    }
-    this.state = this.initialState;
+
     this.state = {
-      orientation: isPortrait() ? 'portrait' : 'landscape'
+      orientation: isPortrait() ? 'portrait' : 'landscape',
+  	  displayString:  ''
     };
 
     // Event Listener for orientation changes
@@ -90,9 +80,14 @@ class App extends Component {
   }
 
   handleInput = (input) =>{
-    const { displayValue, operator, firstValue, secondValue, nextValue } = this.state;
+    const { displayString } = this.state;
 
+	if(this.state.displayString=="Error")
+        this.setState({
+          displayString:  ""
+        })
     switch (input) {
+
       case '0':
       case '1':
       case '2':
@@ -103,97 +98,64 @@ class App extends Component {
       case '7':
       case '8':
       case '9':
-        this.setState({
-          displayValue: (displayValue === '0') ? input : displayValue + input
-        })
-        if(!nextValue) {
-          this.setState({
-            firstValue: firstValue + input
-          })
-        } else {
-          this.setState({
-            secondValue: secondValue + input
-          })
-        }
-        break;
       case '+':
       case '-':
       case '*':
       case '/':
-        this.setState({
-          nextValue: true,
-          operator: input,
-          displayValue: (operator !== null ? displayValue.substr(0, displayValue.length - 1) : displayValue) + input
-        })
-        break;
       case '.' :
-        let dot = displayValue.toString().slice(-1)
-        this.setState({
-          displayValue: dot !=='.' ? displayValue + input : displayValue
-        })
-        if(!nextValue) {
-          this.setState({
-            firstValue: firstValue + input
-          })
-        } else {
-          this.setState({
-            secondValue: secondValue + input
-          })
-        }
-        break;
 
-      case '=' :
-        let formatOperator = (operator == '*') ? '*' : (operator == '/') ? '/' : operator
-        let result = eval(firstValue+formatOperator+secondValue)
         this.setState({
-          displayValue: result % 1 === 0 ? result :result.toFixed(3),
-          firstValue: result % 1 === 0 ? result :result.toFixed(3),
-          secondValue: '',
-          operator: null,
-          nextValue: false
+          displayString:  (displayString + input)
         })
+        break;
+      case '=' :
+		try{
+			let result = math.evaluate(this.state.displayString);
+			if(!isNaN(result) && result != Infinity)
+				this.setState({displayString: math.round(result, 4).toString()});
+			else
+				this.setState({displayString: 'Error'});
+		}
+		catch(error){
+			this.setState({displayString: 'Error'});
+		}
+
         break;
 
       case 'AC' :
-        this.setState(this.initialState);
-        break;
-      case 'DEL' :
-        let string = displayValue.toString();
-        let deletedString = string.substr(0, string.length - 1);
-        let length = string.length;
         this.setState({
-          displayValue: length === 1 ? '0' : deletedString,
-          firstValue: length === 1 ? '' : deletedString
+          displayString:  ""
         })
         break;
+      case 'DEL' :
+      	if(this.state.displayString.length>0)
+	        this.setState({
+	          displayString:  this.state.displayString.substring(0, displayString.length-1)
+	        })
+        break;
       case 'x!':
-        let num = factorialize(firstValue);
         this.setState({
-          displayValue: num
+          displayString: "("+displayString+")!"
         })
         break;
       case 'x^2':
-        let num2 = Math.pow(firstValue, 2);
         this.setState({
-          displayValue: num2
+          displayString: "("+displayString+")^2"
         })
         break;
       case 'x^3':
-        let num3 = Math.pow(firstValue, 3);
         this.setState({
-          displayValue: num3
+          displayString: "("+displayString+")^3"
         })
         break;
       case '10^x':
-        let num10 = Math.pow(10, firstValue);
         this.setState({
-          displayValue: num10
+          displayString: "10^("+displayString+")"
         })
         break;
       case 'log10':
-        let log10 = Math.log10(firstValue);
         this.setState({
-          displayValue: log10
+          displayString: "log10("+displayString+")"
         })
         break;
 
@@ -207,7 +169,7 @@ class App extends Component {
 
           <View style={styles.resultContainer}>
             <Text style={styles.resultText}>
-              {this.state.displayValue}
+              {this.state.displayString}
             </Text>
           </View>
 
@@ -223,7 +185,7 @@ class App extends Component {
 
           <View style={styles.resultContainer}>
             <Text style={styles.resultTextLand}>
-              {this.state.displayValue}
+              {this.state.displayString}
             </Text>
           </View>
 
